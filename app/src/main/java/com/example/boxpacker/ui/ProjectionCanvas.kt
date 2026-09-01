@@ -16,18 +16,18 @@ import com.example.boxpacker.packing.PlacedBox
 
 enum class Projection { FRONT, SIDE, TOP }
 
-private val palette = listOf(
+val palette = listOf(
     Color(0xFF64B5F6), Color(0xFF81C784), Color(0xFFFFB74D),
     Color(0xFFE57373), Color(0xFFBA68C8), Color(0xFF4DB6AC),
     Color(0xFFF06292), Color(0xFFA1887D)
 )
 
+/** Цвет по typeId — консистентный для всех проекций и легенды. */
+fun colorForType(typeId: Int): Color = palette[typeId % palette.size]
+
 /**
  * Рисует схематичный чертёж одной из проекций ячейки с коробками.
- *
- * FRONT — вид по оси Y (плоскость X-Z, ширина x высота)
- * SIDE  — вид по оси X (плоскость Y-Z, глубина x высота)
- * TOP   — вид по оси Z (плоскость X-Y, ширина x глубина)
+ * Цвет коробки зависит от её типа (typeId), не от порядка в списке.
  */
 @Composable
 fun ProjectionCanvas(
@@ -54,12 +54,10 @@ fun ProjectionCanvas(
         val offsetY = (size.height - planeH * scale) / 2f
 
         fun toCanvas(px: Float, pyFromBottom: Float): Offset {
-            // переворачиваем ось Y экрана, чтобы "низ" ячейки был внизу рисунка
             val screenY = (planeH - pyFromBottom) * scale + offsetY
             return Offset(px * scale + offsetX, screenY)
         }
 
-        // контур ячейки
         drawRect(
             color = Color.Black,
             topLeft = Offset(offsetX, offsetY),
@@ -67,7 +65,7 @@ fun ProjectionCanvas(
             style = Stroke(width = 3f)
         )
 
-        boxes.forEachIndexed { index, b ->
+        boxes.forEach { b ->
             val (u, v, uu, vv) = when (projection) {
                 Projection.FRONT -> listOf(b.x, b.z, b.w, b.h)
                 Projection.SIDE -> listOf(b.y, b.z, b.d, b.h)
@@ -75,7 +73,7 @@ fun ProjectionCanvas(
             }.map { it.toFloat() }
 
             val topLeft = toCanvas(u, v + vv)
-            val color = palette[index % palette.size]
+            val color = colorForType(b.typeId)
 
             drawRect(
                 color = color.copy(alpha = 0.55f),
