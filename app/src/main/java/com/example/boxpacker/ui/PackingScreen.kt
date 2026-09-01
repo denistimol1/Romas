@@ -17,19 +17,32 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.boxpacker.packing.BoxType
 import com.example.boxpacker.packing.MultiPacker
 import com.example.boxpacker.packing.PlacedBox
 
-private data class BoxTypeInput(
+/**
+ * ВАЖНО: поля объявлены через `by mutableStateOf`, а не просто `var`.
+ * Без этого Compose не видит изменений полей (switch, текстовые поля
+ * внутри карточки), и экран визуально "не реагирует" на ввод.
+ */
+private class BoxTypeInput(
     val id: Int,
-    var name: String = "",
-    var w: String = "",
-    var d: String = "",
-    var h: String = "",
-    var unlimited: Boolean = true,
-    var qty: String = ""
-)
+    name: String = "",
+    w: String = "",
+    d: String = "",
+    h: String = "",
+    unlimited: Boolean = true,
+    qty: String = ""
+) {
+    var name by mutableStateOf(name)
+    var w by mutableStateOf(w)
+    var d by mutableStateOf(d)
+    var h by mutableStateOf(h)
+    var unlimited by mutableStateOf(unlimited)
+    var qty by mutableStateOf(qty)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,20 +67,21 @@ fun PackingScreen() {
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
+                .padding(horizontal = 12.dp, vertical = 16.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             Text("Размеры ячейки, мм", fontWeight = FontWeight.Bold)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                NumberField("Ширина (X)", cellW) { cellW = it }
-                NumberField("Глубина (Y)", cellD) { cellD = it }
-                NumberField("Высота (Z)", cellH) { cellH = it }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                CompactField("Ширина", cellW) { cellW = it }
+                CompactField("Глубина", cellD) { cellD = it }
+                CompactField("Высота", cellH) { cellH = it }
             }
 
             Spacer(Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Типы коробок", fontWeight = FontWeight.Bold)
                 TextButton(onClick = {
@@ -78,7 +92,7 @@ fun PackingScreen() {
                 }) {
                     Icon(Icons.Filled.Add, contentDescription = null)
                     Spacer(Modifier.width(4.dp))
-                    Text("Добавить коробку")
+                    Text("Добавить")
                 }
             }
 
@@ -89,16 +103,18 @@ fun PackingScreen() {
                         .padding(vertical = 6.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(10.dp)
+                        .padding(8.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         OutlinedTextField(
                             value = item.name,
                             onValueChange = { item.name = it },
                             label = { Text("Название") },
+                            singleLine = true,
                             modifier = Modifier.weight(1f)
                         )
                         if (boxTypeInputs.size > 1) {
@@ -108,14 +124,17 @@ fun PackingScreen() {
                         }
                     }
                     Spacer(Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        NumberField("Ширина", item.w) { item.w = it }
-                        NumberField("Глубина", item.d) { item.d = it }
-                        NumberField("Высота", item.h) { item.h = it }
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        CompactField("Ш", item.w) { item.w = it }
+                        CompactField("Г", item.d) { item.d = it }
+                        CompactField("В", item.h) { item.h = it }
                     }
                     Spacer(Modifier.height(6.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Неограниченно")
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Неограниченно", fontSize = 13.sp)
                         Switch(
                             checked = item.unlimited,
                             onCheckedChange = { item.unlimited = it }
@@ -125,7 +144,8 @@ fun PackingScreen() {
                             OutlinedTextField(
                                 value = item.qty,
                                 onValueChange = { item.qty = it.filter { c -> c.isDigit() } },
-                                label = { Text("Кол-во, шт") },
+                                label = { Text("Кол-во") },
+                                singleLine = true,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.weight(1f)
                             )
@@ -201,12 +221,14 @@ fun PackingScreen() {
     }
 }
 
+/** Компактное поле для чисел: короткая подпись, экономит место в узком ряду. */
 @Composable
-private fun RowScope.NumberField(label: String, value: String, onChange: (String) -> Unit) {
+private fun RowScope.CompactField(label: String, value: String, onChange: (String) -> Unit) {
     OutlinedTextField(
         value = value,
         onValueChange = { onChange(it.filter { c -> c.isDigit() }) },
-        label = { Text(label) },
+        label = { Text(label, fontSize = 12.sp) },
+        singleLine = true,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
         modifier = Modifier.weight(1f)
     )
